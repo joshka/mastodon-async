@@ -23,7 +23,7 @@ macro_rules! pages {
 
                 debug!(method = "get", url = url.as_str(), direction = stringify!($direction), "making API request");
                 let url: String = url.into(); // <- for logging
-                let response = self.mastodon.client.get(&url).send().await?;
+                let response = self.mastodon.authenticated(self.mastodon.client.get(&url)).send().await?;
                 match response.error_for_status() {
                     Ok(response) => {
                         let (prev, next) = get_links(&response)?;
