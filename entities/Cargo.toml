@@ -12,13 +12,9 @@ rust-version.workspace = true
 
 [dependencies]
 futures = "0.3.25"
-thiserror = "1"
+thiserror = "1.0.40"
 static_assertions = "1"
 derive_is_enum_variant = "0.1.1"
-
-[dependencies.log]
-version = "0.4"
-features = ["kv_unstable", "serde", "std", "kv_unstable_serde", "kv_unstable_std"]
 
 [dependencies.serde]
 version = "1"
