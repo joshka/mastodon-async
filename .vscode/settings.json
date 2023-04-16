@@ -22,5 +22,6 @@
     "unfollow",
     "unmute",
     "unreblog"
-  ]
+  ],
+  "rust-analyzer.showUnlinkedFileNotification": false
 }
