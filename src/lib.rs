@@ -105,6 +105,7 @@ pub mod apps;
 pub mod data;
 /// Entities returned from the API
 pub mod entities;
+
 /// Errors
 pub mod errors;
 /// Event stream generators

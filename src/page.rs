@@ -28,7 +28,11 @@ macro_rules! pages {
                     Ok(response) => {
                         let (prev, next) = get_links(&response)?;
                         let response = read_response(response).await?;
-                        debug!(method = "get", url, ?next, ?prev, response = ?response, "received next pages from API");
+                        debug!(method = "get",
+                            url,
+                            next = next.as_ref().map(|u| u.as_str()),
+                            next = prev.as_ref().map(|u| u.as_str()),
+                            response = ?response, "received next pages from API");
                         self.next = next;
                         self.prev = prev;
 
@@ -96,8 +100,8 @@ impl<'a, T: for<'de> Deserialize<'de> + Serialize + Debug> Page<T> {
             let (prev, next) = get_links(&response)?;
             let initial_items = read_response(response).await?;
             debug!(
-                ?prev,
-                ?next,
+                prev = prev.as_ref().map(|u| u.as_str()),
+                next = next.as_ref().map(|u| u.as_str()),
                 ?initial_items,
                 "received first page from API call"
             );
