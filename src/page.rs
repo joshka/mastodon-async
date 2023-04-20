@@ -5,7 +5,7 @@ use crate::{entities::itemsiter::ItemsIter, helpers::read_response::read_respons
 use futures::Stream;
 use reqwest::{header::LINK, Response, Url};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, trace};
+use tracing::{debug, error, instrument, trace};
 use uuid::Uuid;
 
 macro_rules! pages {
@@ -23,27 +23,7 @@ macro_rules! pages {
 
                 debug!(method = "get", url = url.as_str(), direction = stringify!($direction), "making API request");
                 let url: String = url.into(); // <- for logging
-                let response = self.mastodon.authenticated(self.mastodon.client.get(&url)).send().await?;
-                match response.error_for_status() {
-                    Ok(response) => {
-                        let (prev, next) = get_links(&response)?;
-                        let response = read_response(response).await?;
-                        debug!(method = "get",
-                            url,
-                            next = next.as_ref().map(|u| u.as_str()),
-                            next = prev.as_ref().map(|u| u.as_str()),
-                            response = ?response, "received next pages from API");
-                        self.next = next;
-                        self.prev = prev;
-
-                        Ok(Some(response))
-                    }
-                    Err(err) => {
-                        error!( ?err, method = "get", url, "error making API request" );
-                        Err(err.into())
-                    }
-                }
-
+                self.get_page(&url).await
             });
          )*
     }
@@ -91,6 +71,46 @@ impl<'a, T: for<'de> Deserialize<'de> + Serialize + Debug> Page<T> {
     pages! {
         next: next_page,
         prev: prev_page
+    }
+
+    /// get the next url as a string
+    pub fn next_url(&self) -> String {
+        self.next
+            .as_ref()
+            .map_or("None".to_string(), |u| u.as_str().to_string())
+    }
+
+    /// get the previous url as a string
+    pub fn prev_url(&self) -> String {
+        self.prev
+            .as_ref()
+            .map_or("None".to_string(), |u| u.as_str().to_string())
+    }
+
+    #[instrument(skip(self))]
+    async fn get_page(&mut self, url: &String) -> Result<Option<Vec<T>>> {
+        let request = self.mastodon.client.get(url);
+        let request = self.mastodon.authenticated(request);
+        let response = request.send().await?;
+        match response.error_for_status() {
+            Ok(response) => {
+                let (prev, next) = get_links(&response)?;
+                let response = read_response(response).await?;
+                debug!(method = "get",
+                    url,
+                    next = next.as_ref().map(|u| u.as_str()),
+                    next = prev.as_ref().map(|u| u.as_str()),
+                    response = ?response, "received page from API");
+                self.next = next;
+                self.prev = prev;
+
+                Ok(Some(response))
+            }
+            Err(err) => {
+                error!(?err, method = "get", url, "error making API request");
+                Err(err.into())
+            }
+        }
     }
 
     /// Create a new Page.
