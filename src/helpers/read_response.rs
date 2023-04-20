@@ -6,7 +6,7 @@ use futures_util::StreamExt;
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
 use tokio::time::timeout;
-use tracing::{debug, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 /// Adapter for reading JSON data from a response with better logging and a
 /// fail-safe timeout.
@@ -14,6 +14,7 @@ use tracing::{debug, trace, warn};
 /// The reason for this is largely because there was an issue with responses
 /// being received, but not closed, we add a timeout on each read and try
 /// to parse whatever we got before the timeout.
+#[instrument(skip_all)]
 pub async fn read_response<T>(response: Response) -> Result<T>
 where
     T: for<'de> Deserialize<'de> + Serialize + Debug,
