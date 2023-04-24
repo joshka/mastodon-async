@@ -4,6 +4,7 @@ use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::Client;
 use tracing::{debug, error, instrument, trace};
 use uuid::Uuid;
+use valuable::{NamedValues, NamedField, Structable, StructDef, Fields, Value, Valuable};
 
 use crate::{
     apps::{App, AppBuilder},
@@ -260,6 +261,19 @@ impl Registered {
     }
 }
 
+/// Represents the state of the auth flow when the app has been registered but
+/// the user is not authenticated
+#[derive(Debug, Clone)]
+pub struct Registered {
+    base: String,
+    client: Client,
+    client_id: String,
+    client_secret: String,
+    redirect: String,
+    scopes: Scopes,
+    force_login: bool,
+}
+
 impl Registered {
     /// Returns the parts of the `Registered` struct that can be used to
     /// recreate another `Registered` struct
@@ -365,17 +379,36 @@ impl Registered {
     }
 }
 
-/// Represents the state of the auth flow when the app has been registered but
-/// the user is not authenticated
-#[derive(Debug, Clone)]
-pub struct Registered {
-    base: String,
-    client: Client,
-    client_id: String,
-    client_secret: String,
-    redirect: String,
-    scopes: Scopes,
-    force_login: bool,
+static REGISTERED_LOG_SAFE_FIELDS: &[NamedField] = &[
+    NamedField::new("base"),
+    NamedField::new("client_id"),
+    NamedField::new("force_login"),
+    NamedField::new("redirect"),
+    NamedField::new("scopes")
+];
+
+impl Valuable for Registered {
+    fn as_value(&self) -> Value<'_> {
+        Value::Structable(self)
+    }
+
+    fn visit(&self, visit: &mut dyn valuable::Visit) {
+        visit.visit_named_fields(
+            &NamedValues::new(REGISTERED_LOG_SAFE_FIELDS, &[
+                Value::String(&self.base),
+                Value::String(&self.client_id),
+                Value::Bool(self.force_login),
+                Value::String(&self.redirect),
+                Value::String(&self.scopes.to_string()),
+            ])
+        );
+    }
+}
+
+impl Structable for Registered {
+    fn definition(&self) -> StructDef<'_> {
+        StructDef::new_static("Registered", Fields::Named(REGISTERED_LOG_SAFE_FIELDS))
+    }
 }
 
 #[cfg(test)]

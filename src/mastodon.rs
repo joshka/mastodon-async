@@ -47,7 +47,6 @@ pub struct MastodonUnauthenticated {
 
 impl From<Data> for Mastodon {
     /// Creates a mastodon instance from the data struct.
-    #[tracing::instrument(skip(data))]
     fn from(data: Data) -> Mastodon {
         Mastodon::new(Client::new(), data)
     }
